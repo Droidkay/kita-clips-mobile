@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +26,19 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
 
+      - name: Name the APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk KitaClipsMobile.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: KitaClipsMobile-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: KitaClipsMobile.apk
+
+      - name: Publish release (download the APK from the Releases page)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v1.0-${{ github.run_number }}" KitaClipsMobile.apk \
+            --title "Kita Clips Mobile build ${{ github.run_number }}" \
+            --notes "Debug APK. Install on your phone (allow unknown apps)." \
+            --target "${{ github.sha }}"
