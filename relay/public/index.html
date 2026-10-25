@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kita Clips</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0b0d12; --card: #151923; --card-2: #1c2230; --line: #262d3d;
+    --text: #e8ecf5; --muted: #8b94a8; --accent: #6c8cff; --green: #3ddc97; --red: #ff6b7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 20px 16px 80px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  header img { width: 36px; height: 36px; border-radius: 9px; }
+  header h1 { font-size: 20px; margin: 0; flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot.connecting { background: #ffcc66; }
+  button { font: inherit; color: var(--text); background: var(--card-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #0b0d12; font-weight: 600; }
+  button.danger:hover { border-color: var(--red); color: var(--red); }
+  button.small { padding: 4px 10px; font-size: 13px; }
+  input, textarea { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; width: 100%; }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+  .landing { max-width: 480px; margin: 40px auto; display: grid; gap: 14px; }
+  .landing h2 { margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row > * { flex: none; }
+  .row > .grow { flex: 1; }
+  .hidden { display: none !important; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 18px; }
+  .clip { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px;
+    display: flex; flex-direction: column; gap: 10px; transition: border-color .15s, transform .15s; }
+  .clip:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .clip.fresh { border-color: var(--green); }
+  .clip .text { white-space: pre-wrap; word-break: break-word; max-height: 9.5em; overflow: hidden;
+    cursor: pointer; mask-image: linear-gradient(#000 80%, transparent); -webkit-mask-image: linear-gradient(#000 80%, transparent); }
+  .clip .meta { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; }
+  .clip .meta .spacer { flex: 1; }
+  .pairing { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .qr { background: #fff; padding: 10px; border-radius: 12px; line-height: 0; }
+  .code { font: 600 26px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .08em; cursor: pointer; }
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--card-2);
+    border: 1px solid var(--line); padding: 10px 16px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+  label.check { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); cursor: pointer; }
+  label.check input { width: auto; }
+  details summary { cursor: pointer; color: var(--muted); }
+  .err { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/icon.svg" alt="">
+    <h1>Kita Clips</h1>
+    <span class="pill" id="status"><span class="dot" id="dot"></span><span id="statusText">Not connected</span></span>
+    <button id="leaveBtn" class="small hidden">Leave room</button>
+  </header>
+
+  <!-- Landing -->
+  <section id="landing" class="landing">
+    <div class="panel">
+      <h2>Sync your clipboard</h2>
+      <p class="muted">Copy on your phone, paste on your Mac, and the other way round. Clips are end-to-end encrypted with your room code, so the server can't read them.</p>
+      <div class="row"><button class="primary grow" id="createBtn">Create a room</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Join a room</h3>
+      <div class="row">
+        <input class="grow" id="joinInput" placeholder="XXXXX-XXXXX" autocapitalize="characters" autocomplete="off" spellcheck="false">
+        <button id="joinBtn">Join</button>
+      </div>
+      <p class="err hidden" id="joinErr"></p>
+    </div>
+  </section>
+
+  <!-- Room -->
+  <section id="room" class="hidden">
+    <div class="panel pairing">
+      <div class="qr" id="qr"></div>
+      <div style="flex:1; min-width:220px">
+        <div class="muted">Room code (click to copy)</div>
+        <div class="code" id="codeText" title="Copy room code"></div>
+        <p class="muted" style="margin:10px 0 0">On your phone: open Kita Clips Mobile &rarr; <b>Scan QR</b>, or type this code and this site's address.</p>
+        <p class="muted" style="margin:6px 0 0">Site address: <b id="originText"></b></p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px">
+      <textarea id="composer" rows="2" placeholder="Type or paste something to send to your other devices..."></textarea>
+      <div class="row" style="margin-top:10px; flex-wrap:wrap">
+        <button class="primary" id="sendBtn">Send</button>
+        <button id="sendClipboardBtn">Send my clipboard</button>
+        <span class="grow"></span>
+        <label class="check"><input type="checkbox" id="autoCopy"> Auto-copy incoming clips</label>
+        <button class="small danger" id="clearBtn">Clear all</button>
+      </div>
+    </div>
+
+    <div class="grid" id="clips"></div>
+    <p class="muted" id="empty" style="text-align:center; margin-top:40px">No clips yet. Send one from your phone or paste above.</p>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/vendor/qrcode.js"></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "kita-clips-relay",
+  "version": "1.0.0",
+  "description": "Tiny end-to-end-encrypted room relay for Kita Clips (phone <-> Mac clipboard sync)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/e2e.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
